@@ -12,13 +12,13 @@ type F func(p Param) interface{}
 
 type Ft struct {
   *testing.T
-  params *Parameters
+  params ParamReader
   fixture F
   data []interface{}
   results *Results
 }
 
-func New(t *testing.T, f F, p *Parameters, r *Results) *Ft {
+func New(t *testing.T, f F, p ParamReader, r *Results) *Ft {
   return &Ft{ T: t, params: p, fixture: f, results: r }
 }
 
@@ -37,8 +37,15 @@ func (f *Ft) RunWith(t Test) {
 func (f *Ft) Assert() {
   r := f.results.Values()
   i := len(f.data) - 1
-  if f.data[i] != r[i] {
-    f.Errorf("Failed value does not match expected result: %s != %s", f.data[i], r[i])
+  data := f.data[i]
+  res := r[i]
+  switch r[i].(type) {
+  case string:
+    data = string(f.data[i].([]byte))
+    res = string(r[i].(string))
+  }
+  if data != res {
+    f.Errorf("Failed value does not match expected result: [%s] != [%s]", f.data[i], r[i])
   }
 }
 
