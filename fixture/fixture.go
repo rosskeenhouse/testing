@@ -34,6 +34,22 @@ func (f *Ft) RunWith(t Test) {
   }
 }
 
+func (f *Ft) AssertEqual(value interface{}) {
+  r := f.results.Values()
+  i := len(f.data) - 1
+  switch r[i].(type) {
+  case string:
+    res := r[i].(string)
+    v := value.(string)
+  default:
+    res := r[i]
+    v := value
+  }
+  if value != res {
+    f.Errorf("Failed value does not match expected result: [%s] != [%s]", value, res)
+  }
+}
+
 func (f *Ft) Assert() {
   r := f.results.Values()
   i := len(f.data) - 1
