@@ -4,6 +4,7 @@ package fixture
 import (
   "testing"
   "strconv"
+  "reflect"
 )
 
 type Test func(t *testing.T)
@@ -26,6 +27,14 @@ func (f *Ft) Fixture() []interface{} {
   return f.data
 }
 
+func (f *Ft) Value() interface{} {
+  return f.data[len(f.data) - 1]
+}
+
+func (f *Ft) Result() interface{} {
+  return f.results.Values()[len(f.data) - 1]
+}
+
 func (f *Ft) RunWith(t Test) {
   f.data = nil
   for i, r := range(f.params.Values()) {
@@ -34,20 +43,68 @@ func (f *Ft) RunWith(t Test) {
   }
 }
 
-func (f *Ft) AssertEqual(value interface{}) {
-  r := f.results.Values()
-  i := len(f.data) - 1
-  switch r[i].(type) {
-  case string:
-    res := r[i].(string)
-    v := value.(string)
-  default:
-    res := r[i]
-    v := value
+func (f *Ft) assertOp(value interface{}, o func (a interface{}, b interface{}) bool) {
+  r := f.Result()
+  if ! o(r, value) {
+    f.Errorf("Failure: value does not match expected result: [%s] != [%s]", r, value)
   }
-  if value != res {
-    f.Errorf("Failed value does not match expected result: [%s] != [%s]", value, res)
+
+}
+
+func (f *Ft) AssertStrEq(value string) {
+  f.assertOp(value, func (a interface{}, b interface{}) bool { return a.(string) == b.(string) })
+}
+
+func (f *Ft) AssertGt(value interface{}) {
+  cmpOp := func (a, b interface{}) bool {
+    rType := reflect.TypeOf(a)
+    switch rType.Name() { 
+    case "float64", "float32":
+      return reflect.ValueOf(a).Convert(rType).Float() > reflect.ValueOf(b).Convert(rType).Float()
+    default:
+      return reflect.ValueOf(a).Convert(rType).Int() > reflect.ValueOf(b).Convert(rType).Int()
+    }
   }
+  f.assertOp(value, cmpOp)
+}
+
+func (f *Ft) AssertGe(value interface{}) {
+  cmpOp := func (a, b interface{}) bool {
+    rType := reflect.TypeOf(a)
+    switch rType.Name() { 
+    case "float64", "float32":
+      return reflect.ValueOf(a).Convert(rType).Float() >= reflect.ValueOf(b).Convert(rType).Float()
+    default:
+      return reflect.ValueOf(a).Convert(rType).Int() >= reflect.ValueOf(b).Convert(rType).Int()
+    }
+  }
+  f.assertOp(value, cmpOp)
+}
+
+func (f *Ft) AssertLt(value interface{}) {
+  cmpOp := func (a, b interface{}) bool {
+    rType := reflect.TypeOf(a)
+    switch rType.Name() { 
+    case "float64", "float32":
+      return reflect.ValueOf(a).Convert(rType).Float() < reflect.ValueOf(b).Convert(rType).Float()
+    default:
+      return reflect.ValueOf(a).Convert(rType).Int() < reflect.ValueOf(b).Convert(rType).Int()
+    }
+  }
+  f.assertOp(value, cmpOp)
+}
+
+func (f *Ft) AssertLe(value interface{}) {
+  cmpOp := func (a, b interface{}) bool {
+    rType := reflect.TypeOf(a)
+    switch rType.Name() { 
+    case "float64", "float32":
+      return reflect.ValueOf(a).Convert(rType).Float() <= reflect.ValueOf(b).Convert(rType).Float()
+    default:
+      return reflect.ValueOf(a).Convert(rType).Int() <= reflect.ValueOf(b).Convert(rType).Int()
+    }
+  }
+  f.assertOp(value, cmpOp)
 }
 
 func (f *Ft) Assert() {
